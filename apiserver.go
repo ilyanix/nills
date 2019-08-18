@@ -7,7 +7,7 @@ import (
 
 func NewAPIServer() *httprouter.Router {
 	router := httprouter.New()
-	router.GET("/v1/join", Join)
-	Trace.Println("API routes created")
+	router.POST("/v1/join", Join)
+	router.GET("/v1/nodes", ListNodes)
 	return router
 }

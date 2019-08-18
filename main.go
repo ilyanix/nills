@@ -11,11 +11,19 @@ import (
 	"fmt"
 )
 
+type Node struct {
+	Hostname string `json:"hostname"`
+	Extip net.IP `json:"extip"`
+	Intip net.IP `json:"intip"`
+}
+
 var (
 	Trace		*log.Logger
 	Info		*log.Logger
 	Warning		*log.Logger
 	Error		*log.Logger
+	Nodes		[]Node
+	MyHostname	string
 )
 
 func Loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Writer, errorHandle io.Writer) {
@@ -25,9 +33,9 @@ func Loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Write
 	Error = log.New(errorHandle, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-func GetLocalIP() net.Addr {
+func GetLocalIP() net.IP {
 	re := regexp.MustCompile("^(\\w+)\\s+00000000(\\s+\\w+){5}\\s+00000000")
-	var localip net.Addr
+	var ipv4 net.IP
 
 	file, _ := os.Open("/proc/net/route")
 	defer file.Close()
@@ -39,19 +47,32 @@ func GetLocalIP() net.Addr {
 			iface, _ := net.InterfaceByName(match[1])
 			addrs, _ := iface.Addrs()
 			Trace.Println("localIP addresses:", addrs)
-			ip := fmt.Sprint(addrs[0])
-			ipv4, prefix, _ := net.ParseCIDR(ip)
-			Trace.Println("local ipv4:", ipv4, "Prefix:", prefix)
+			ipv4, _, _ = net.ParseCIDR(fmt.Sprint(addrs[0]))
 		}
 	}
-	return localip
+	return ipv4
 }
 func main() {
 	Loginit(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
-	localip := GetLocalIP()
-	Info.Println("local IPv4:", localip)
-	Trace.Println("Create API router")
+	var node Node
+	var err error
+
+	MyHostname, err = os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+	Info.Println("my hostname:", MyHostname)
+
+	myIP := GetLocalIP()
+	Info.Println("local IPv4:", myIP)
+
+	node.Hostname = MyHostname
+	node.Intip = myIP
+	Nodes = append(Nodes, node)
+
+	TCPPort := "9080"
+
 	APIServer := NewAPIServer()
-	Trace.Println("Start WeB API Server")
-	log.Fatal(http.ListenAndServe(":9080", APIServer))
+	Info.Println("listen port:", TCPPort)
+	log.Fatal(http.ListenAndServe(":" + TCPPort, APIServer))
 }
