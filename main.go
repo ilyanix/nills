@@ -9,12 +9,23 @@ import (
 	"bufio"
 	"regexp"
 	"fmt"
+	"flag"
+	"io/ioutil"
 )
 
 type Node struct {
-	Hostname string `json:"hostname"`
-	Extip net.IP `json:"extip"`
-	Intip net.IP `json:"intip"`
+	Hostname	string	`json:"hostname"`
+	Extip		net.IP	`json:"extip"`
+	Intip		net.IP	`json:"intip"`
+	Port		string	`json:"port"`
+}
+
+type PeerData struct {
+	Hostname	string	`json:"hostname"`
+	Intip		net.IP	`json:"intip"`
+	Extip		net.IP	`json:"extip"`
+	Port		string	`json:"port"`
+	Nodes		[]Node	`json:"nodes"`
 }
 
 var (
@@ -22,7 +33,7 @@ var (
 	Info		*log.Logger
 	Warning		*log.Logger
 	Error		*log.Logger
-	Nodes		[]Node
+	Nodes		PeerData
 	MyHostname	string
 )
 
@@ -53,26 +64,35 @@ func GetLocalIP() net.IP {
 	return ipv4
 }
 func main() {
-	Loginit(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
-	var node Node
+	Loginit(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
+	//var node Node
 	var err error
 
-	MyHostname, err = os.Hostname()
+	Nodes.Hostname, err = os.Hostname()
 	if err != nil {
 		panic(err)
 	}
-	Info.Println("my hostname:", MyHostname)
+	Info.Println("my hostname:", Nodes.Hostname)
 
-	myIP := GetLocalIP()
-	Info.Println("local IPv4:", myIP)
+	Nodes.Intip = GetLocalIP()
+	Info.Println("local IPv4:", Nodes.Intip)
 
-	node.Hostname = MyHostname
-	node.Intip = myIP
-	Nodes = append(Nodes, node)
+	/*node.Hostname = Nodes.Hostname
+	node.Intip = Nodes.Intip
+	*/
+	cf := flag.String("join","", "")
+	tcpPort := flag.String("port", "9080", "")
+	flag.Parse()
 
-	TCPPort := "9080"
+	Nodes.Port = *tcpPort
+	//Nodes.Nodes = append(Nodes.Nodes, node)
+
+	re := regexp.MustCompile("\\d+(\\.\\d+){3}")
+	if cf != nil && re.MatchString(*cf) {
+		Join2cluster(*cf)
+	}
 
 	APIServer := NewAPIServer()
-	Info.Println("listen port:", TCPPort)
-	log.Fatal(http.ListenAndServe(":" + TCPPort, APIServer))
+	Info.Println("listen port:", Nodes.Port)
+	log.Fatal(http.ListenAndServe(":" + Nodes.Port, APIServer))
 }
