@@ -28,6 +28,7 @@ func handlListNodes(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 
 func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	Trace.Println("Join Start")
+	var rInventory	PeerInventory
 	var node	Node
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -36,14 +37,19 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	myExt, _, _ := net.SplitHostPort(r.Host)
 	Trace.Println("myExt is:", myExt)
 	Inventory.Extip = net.ParseIP(myExt)
-	err := json.NewDecoder(r.Body).Decode(&node)
+	err := json.NewDecoder(r.Body).Decode(&rInventory)
 	if err != nil {
 		w.WriteHeader(500)
 		Trace.Println(err)
 		return
 	}
-	Trace.Println("Join from node:", node)
-	node.Extip = net.ParseIP(remoteIP)
+	Trace.Println("Join data from node:", rInventory)
+	node = Node{
+		Hostname: rInventory.Hostname,
+		Intip: rInventory.Intip,
+		Extip: net.ParseIP(remoteIP),
+		Port: rInventory.Port }
+
 	for i, _ := range Inventory.Nodes {
 		n := &Inventory.Nodes[i]
 		if bytes.Equal(n.Extip, node.Extip) && n.Port == node.Port {
