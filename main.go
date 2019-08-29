@@ -55,12 +55,13 @@ func main() {
 	Inventory.Port = *tcpPort
 	nodeCollectData()
 
+	sswanLoadKey()
+
 	re := regexp.MustCompile("\\d+(\\.\\d+){3}")
 	if joinFlag != nil && re.MatchString(*joinFlag) {
 		nodeJoin2cluster(*joinFlag)
 	}
 
-	sswanLoadkey()
 
 	APIServer := NewAPIServer()
 	Info.Println("listen port:", Inventory.Port)

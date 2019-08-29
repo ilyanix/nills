@@ -51,6 +51,7 @@ func nodeCollectData() {
 
 func nodeJoin2cluster(host string) {
 	var node Node
+	var nodes []string
 
 	rInventory := getNodes(host)
 	Trace.Println("cluster state:", rInventory)
@@ -75,10 +76,12 @@ func nodeJoin2cluster(host string) {
 			Trace.Println("join to node:", v.Hostname)
 			ip := fmt.Sprint(v.Extip)
 			host := net.JoinHostPort(ip, v.Port)
+			nodes = append(nodes, v.Hostname)
 			postJoin(host)
 		}
 	}
-	sswanUpdateIKE()
+	sswanLoadConn()
+	sswanInitConn(nodes)
 }
 
 func getNodes(host string) PeerInventory {

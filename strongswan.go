@@ -43,7 +43,35 @@ type IKEKey struct {
 	Owners		[]string	`vici:"owners"`
 }
 
-func sswanLoadkey() {
+func sswanInitConn(nodes []string) {
+	session, err := vici.NewSession()
+        if err != nil {
+                Error.Println("can't connect to strongswan daemon:", err)
+                return
+        }
+	m := vici.NewMessage()
+	for _, v := range nodes {
+		conn := Inventory.Hostname + "_2_" + v
+		m.Set("child", conn)
+		m.Set("ike", conn)
+		m.Set("timeout", "-1")
+		Info.Println("terminate conn:", conn)
+		r, err := session.CommandRequest("terminate", m)
+		if err != nil {
+			Error.Println("terminate error:", err)
+		}
+		Info.Println("terminate conn", conn, "success:", r)
+
+		Info.Println("initiate conn:", conn)
+		r, err = session.CommandRequest("initiate", m)
+		if err != nil {
+			Error.Println("initiate error:", err)
+		}
+		Info.Println("initiate conn", conn, "success:", r)
+	}
+}
+
+func sswanLoadKey() {
 	session, err := vici.NewSession()
         if err != nil {
                 Error.Println("can't connect to strongswan daemon:", err)
@@ -65,7 +93,7 @@ func sswanLoadkey() {
 	Info.Println("load key success:", r.Get("success"))
 }
 
-func sswanUpdateIKE() {
+func sswanLoadConn() {
 	session, err := vici.NewSession()
         if err != nil {
                 Error.Println("can't connect to strongswan daemon:", err)

@@ -56,11 +56,18 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			Info.Println("the node:", node.Hostname, node.Extip, node.Port, "is already known")
 			Info.Println("update data for node with external IP:", node.Extip)
 			n.Intip = node.Intip
-			//UpdateIKE()
-			//return
+			sswanLoadConn()
+			nodes := []string{rInventory.Hostname}
+			sswanInitConn(nodes)
+			err = json.NewEncoder(w).Encode(Inventory)
+			if err != nil {
+				w.WriteHeader(500)
+				Trace.Println(err)
+				return
+			}
+			return
 		}
 	}
-
 	Inventory.Nodes = append(Inventory.Nodes, node)
 	Trace.Println("nodes:", Inventory.Nodes)
 	err = json.NewEncoder(w).Encode(Inventory)
@@ -69,7 +76,7 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Trace.Println(err)
 		return
 	}
-	sswanUpdateIKE()
+	sswanLoadConn()
 }
 
 
