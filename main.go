@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"fmt"
 	"flag"
-	"io/ioutil"
+//	"io/ioutil"
 )
 
 type Node struct {
@@ -25,6 +25,7 @@ type PeerData struct {
 	Intip		net.IP	`json:"intip"`
 	Extip		net.IP	`json:"extip"`
 	Port		string	`json:"port"`
+	Remoteip	net.IP	`json:"remoteip"`
 	Nodes		[]Node	`json:"nodes"`
 }
 
@@ -64,11 +65,14 @@ func GetLocalIP() net.IP {
 	return ipv4
 }
 func main() {
-	Loginit(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
+	Loginit(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
 	//var node Node
 	var err error
 
-	Nodes.Hostname, err = os.Hostname()
+	re := regexp.MustCompile("\\.")
+	hostname, _ := os.Hostname()
+	match := re.Split(hostname, -1)
+	Nodes.Hostname = string(match[0])
 	if err != nil {
 		panic(err)
 	}
@@ -87,11 +91,11 @@ func main() {
 	Nodes.Port = *tcpPort
 	//Nodes.Nodes = append(Nodes.Nodes, node)
 
-	re := regexp.MustCompile("\\d+(\\.\\d+){3}")
+	re = regexp.MustCompile("\\d+(\\.\\d+){3}")
 	if cf != nil && re.MatchString(*cf) {
 		Join2cluster(*cf)
 	}
-
+	Loadkey()
 	APIServer := NewAPIServer()
 	Info.Println("listen port:", Nodes.Port)
 	log.Fatal(http.ListenAndServe(":" + Nodes.Port, APIServer))

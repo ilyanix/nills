@@ -14,6 +14,7 @@ func ListNodes(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	remoteIP, _, _ := net.SplitHostPort(r.RemoteAddr)
 	Info.Println("nodes list request from host:", remoteIP)
+	Nodes.Remoteip = net.ParseIP(remoteIP)
 	myExt, _, _ := net.SplitHostPort(r.Host)
 	Trace.Println("myExt is:", myExt)
 	Nodes.Extip = net.ParseIP(myExt)
@@ -50,6 +51,7 @@ func Join(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			Info.Println("the node:", node.Hostname, node.Extip, node.Port, "is already known")
 			Info.Println("update data for node with external IP:", node.Extip)
 			n.Intip = node.Intip
+			UpdateIKE()
 			return
 		}
 	}
@@ -62,6 +64,7 @@ func Join(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Trace.Println(err)
 		return
 	}
+	UpdateIKE()
 }
 
 func getNodes(host string) PeerData {
@@ -129,17 +132,28 @@ func Join2cluster(host string) {
 
 	nodes := getNodes(host)
 	Trace.Println("clusterNodes:", nodes)
-	Nodes.Nodes = append(Nodes.Nodes, nodes.Nodes...)
+	for _, v := range nodes.Nodes {
+		if v.Hostname != Nodes.Hostname {
+			Trace.Println("add node:", v.Hostname)
+			Nodes.Nodes = append(Nodes.Nodes, v)
+		}
+	}
 
 	node.Hostname = nodes.Hostname
 	node.Port = nodes.Port
 	node.Extip = nodes.Extip
 	node.Intip = nodes.Intip
+
+	Nodes.Extip = nodes.Remoteip
 	Nodes.Nodes = append(Nodes.Nodes, node)
 
 	for _, v := range Nodes.Nodes {
-		ip := fmt.Sprint(v.Extip)
-		host := net.JoinHostPort(ip, v.Port)
-		postJoin(host)
+		if v.Hostname != Nodes.Hostname {
+			Trace.Println("add node:", v.Hostname)
+			ip := fmt.Sprint(v.Extip)
+			host := net.JoinHostPort(ip, v.Port)
+			postJoin(host)
+		}
 	}
+	UpdateIKE()
 }
