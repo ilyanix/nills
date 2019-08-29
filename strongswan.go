@@ -43,7 +43,7 @@ type IKEKey struct {
 	Owners		[]string	`vici:"owners"`
 }
 
-func Loadkey() {
+func sswanLoadkey() {
 	session, err := vici.NewSession()
         if err != nil {
                 Error.Println("can't connect to strongswan daemon:", err)
@@ -65,16 +65,16 @@ func Loadkey() {
 	Info.Println("load key success:", r.Get("success"))
 }
 
-func UpdateIKE() {
+func sswanUpdateIKE() {
 	session, err := vici.NewSession()
         if err != nil {
                 Error.Println("can't connect to strongswan daemon:", err)
                 return
         }
 
-	myIntip := fmt.Sprint(Nodes.Intip)
-	myExtip := fmt.Sprint(Nodes.Extip)
-	for _, n := range Nodes.Nodes {
+	myIntip := fmt.Sprint(Inventory.Intip)
+	myExtip := fmt.Sprint(Inventory.Extip)
+	for _, n := range Inventory.Nodes {
 		nodeIntip := fmt.Sprint(n.Intip)
 		nodeExtip := fmt.Sprint(n.Extip)
 		local := IKELocal{myExtip, "psk"}
@@ -88,7 +88,7 @@ func UpdateIKE() {
 		if err != nil {
 			Error.Println(err)
 		}
-		c_name := Nodes.Hostname + "_To_" + n.Hostname
+		c_name := Inventory.Hostname + "_2_" + n.Hostname
 		child_name := vici.NewMessage()
 		child_name.Set(c_name, m_child)
 

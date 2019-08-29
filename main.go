@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"io"
 	"os"
-	"bufio"
+//	"bufio"
 	"regexp"
-	"fmt"
+//	"fmt"
 	"flag"
 //	"io/ioutil"
 )
@@ -20,7 +20,7 @@ type Node struct {
 	Port		string	`json:"port"`
 }
 
-type PeerData struct {
+type PeerInventory struct {
 	Hostname	string	`json:"hostname"`
 	Intip		net.IP	`json:"intip"`
 	Extip		net.IP	`json:"extip"`
@@ -34,8 +34,7 @@ var (
 	Info		*log.Logger
 	Warning		*log.Logger
 	Error		*log.Logger
-	Nodes		PeerData
-	MyHostname	string
+	Inventory	PeerInventory
 )
 
 func Loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Writer, errorHandle io.Writer) {
@@ -45,58 +44,25 @@ func Loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Write
 	Error = log.New(errorHandle, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-func GetLocalIP() net.IP {
-	re := regexp.MustCompile("^(\\w+)\\s+00000000(\\s+\\w+){5}\\s+00000000")
-	var ipv4 net.IP
 
-	file, _ := os.Open("/proc/net/route")
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		match := re.FindStringSubmatch(scanner.Text())
-		if match != nil {
-			iface, _ := net.InterfaceByName(match[1])
-			addrs, _ := iface.Addrs()
-			Trace.Println("localIP addresses:", addrs)
-			ipv4, _, _ = net.ParseCIDR(fmt.Sprint(addrs[0]))
-		}
-	}
-	return ipv4
-}
 func main() {
 	Loginit(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
-	//var node Node
-	var err error
 
-	re := regexp.MustCompile("\\.")
-	hostname, _ := os.Hostname()
-	match := re.Split(hostname, -1)
-	Nodes.Hostname = string(match[0])
-	if err != nil {
-		panic(err)
-	}
-	Info.Println("my hostname:", Nodes.Hostname)
-
-	Nodes.Intip = GetLocalIP()
-	Info.Println("local IPv4:", Nodes.Intip)
-
-	/*node.Hostname = Nodes.Hostname
-	node.Intip = Nodes.Intip
-	*/
-	cf := flag.String("join","", "")
-	tcpPort := flag.String("port", "9080", "")
+	joinFlag := flag.String("join","", "join to: IP:PORT")
+	tcpPort := flag.String("port", "9080", "bind port, default 9080")
 	flag.Parse()
 
-	Nodes.Port = *tcpPort
-	//Nodes.Nodes = append(Nodes.Nodes, node)
+	Inventory.Port = *tcpPort
+	nodeCollectData()
 
-	re = regexp.MustCompile("\\d+(\\.\\d+){3}")
-	if cf != nil && re.MatchString(*cf) {
-		Join2cluster(*cf)
+	re := regexp.MustCompile("\\d+(\\.\\d+){3}")
+	if joinFlag != nil && re.MatchString(*joinFlag) {
+		nodeJoin2cluster(*joinFlag)
 	}
-	Loadkey()
+
+	sswanLoadkey()
+
 	APIServer := NewAPIServer()
-	Info.Println("listen port:", Nodes.Port)
-	log.Fatal(http.ListenAndServe(":" + Nodes.Port, APIServer))
+	Info.Println("listen port:", Inventory.Port)
+	log.Fatal(http.ListenAndServe(":" + Inventory.Port, APIServer))
 }
