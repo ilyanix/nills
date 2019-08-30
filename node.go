@@ -52,6 +52,7 @@ func nodeCollectData() {
 func nodeJoin2cluster(host string) {
 	var node Node
 	var nodes []string
+	var rejoin bool
 
 	rInventory := getNodes(host)
 	Trace.Println("cluster state:", rInventory)
@@ -69,19 +70,31 @@ func nodeJoin2cluster(host string) {
 
 	Inventory.Extip = rInventory.Remoteip
 	Trace.Println("add node:", node.Hostname)
-	Inventory.Nodes = append(Inventory.Nodes, node)
+	rInventory.Nodes = append(rInventory.Nodes, node)
+	nodes = append(nodes, node.Hostname)
 
-	for _, v := range Inventory.Nodes {
-		if v.Hostname != Inventory.Hostname {
+	for _, v := range rInventory.Nodes {
+		Trace.Println("loop nodes:", v.Hostname, "vs", Inventory.Hostname)
+		switch {
+		case v.Hostname != Inventory.Hostname:
 			Trace.Println("join to node:", v.Hostname)
 			ip := fmt.Sprint(v.Extip)
 			host := net.JoinHostPort(ip, v.Port)
 			nodes = append(nodes, v.Hostname)
 			postJoin(host)
+                        Inventory.Nodes = append(Inventory.Nodes, v)
+		case v.Hostname == Inventory.Hostname:
+			Info.Println("rejoin to cluster")
+			rejoin = true
 		}
 	}
+	Trace.Println("load connection", Inventory.Nodes)
 	sswanLoadConn()
-	sswanInitConn(nodes)
+	if rejoin {
+		Info.Println("rejoin to nodes:", nodes)
+		sswanInitConn(nodes)
+		rejoin = false
+	}
 }
 
 func getNodes(host string) PeerInventory {
