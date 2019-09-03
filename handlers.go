@@ -55,8 +55,8 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			Info.Println("update data for node with external IP:", node.Extip)
 			n.Intip = node.Intip
 			sswanLoadConn()
-			nodes := []string{rInventory.Hostname}
-			sswanInitConn(nodes)
+			sswanTerminateConn(node.Hostname)
+			sswanInitConn(node.Hostname)
 			err = json.NewEncoder(w).Encode(Inventory)
 			if err != nil {
 				w.WriteHeader(500)
