@@ -2,32 +2,12 @@ package main
 
 import (
 	"log"
-	"net"
 	"net/http"
 	"io"
 	"os"
-//	"bufio"
-	"regexp"
-//	"fmt"
 	"flag"
-//	"io/ioutil"
+	"io/ioutil"
 )
-
-type Node struct {
-	Hostname	string	`json:"hostname"`
-	Extip		net.IP	`json:"extip"`
-	Intip		net.IP	`json:"intip"`
-	Port		string	`json:"port"`
-}
-
-type PeerInventory struct {
-	Hostname	string	`json:"hostname"`
-	Intip		net.IP	`json:"intip"`
-	Extip		net.IP	`json:"extip"`
-	Port		string	`json:"port"`
-	Remoteip	net.IP	`json:"remoteip"`
-	Nodes		[]Node	`json:"nodes"`
-}
 
 var (
 	Trace		*log.Logger
@@ -44,24 +24,30 @@ func Loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Write
 	Error = log.New(errorHandle, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-
 func main() {
-	Loginit(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
+	joinTarget := flag.String("join","0.0.0.0:0", "join to: IP:PORT")
+	tcpPort := flag.String("port", "9080", "pecify binding port")
+	debug := flag.Bool("debug", false, "turn on debug logs")
+	srcIfname := flag.String("nic", "2", "source interface name or index")
 
-	joinFlag := flag.String("join","", "join to: IP:PORT")
-	tcpPort := flag.String("port", "9080", "bind port, default 9080")
 	flag.Parse()
 
+	if *debug {
+		Loginit(os.Stdout, os.Stdout, os.Stdout, os.Stderr)
+	} else {
+		Loginit(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
+	}
+
 	Inventory.Port = *tcpPort
-	nodeCollectData()
+
+	target := nodeResolveTarget(*joinTarget)
+	nodeCollectData(*srcIfname)
 
 	sswanLoadKey()
 
-	re := regexp.MustCompile("\\d+(\\.\\d+){3}")
-	if joinFlag != nil && re.MatchString(*joinFlag) {
-		nodeJoin2cluster(*joinFlag)
+	if target != "0.0.0.0:0" {
+		nodeJoin2cluster(target)
 	}
-
 
 	APIServer := NewAPIServer()
 	Info.Println("listen port:", Inventory.Port)

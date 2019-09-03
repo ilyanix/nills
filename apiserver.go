@@ -4,7 +4,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-
 func NewAPIServer() *httprouter.Router {
 	router := httprouter.New()
 	router.POST("/v1/join", handlJoin)

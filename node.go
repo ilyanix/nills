@@ -5,48 +5,105 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"encoding/json"
 	"bytes"
+	"strconv"
+//	"github.com/google/gopacket/routing"
 )
+
+type Node struct {
+	Hostname	string	`json:"hostname"`
+	Extip		net.IP	`json:"extip"`
+	Intip		net.IP	`json:"intip"`
+	Port		string	`json:"port"`
+}
+
+type PeerInventory struct {
+	Hostname	string	`json:"hostname"`
+	Intip		net.IP	`json:"intip"`
+	Extip		net.IP	`json:"extip"`
+	Port		string	`json:"port"`
+	Remoteip	net.IP	`json:"remoteip"`
+	Nodes		[]Node	`json:"nodes"`
+}
 
 func getHostname() string {
         re := regexp.MustCompile("\\.")
         hostname, err := os.Hostname()
-        match := re.Split(hostname, -1)
-        if err != nil {
+	if err != nil {
                 panic(err)
         }
-        Info.Println("my hostname:", Inventory.Hostname)
-	return string(match[0])
+	Trace.Println("os hostname is:", hostname)
+        match := re.Split(hostname, -1)
+	if len(match) > 1 {
+		hostname = match[0]
+	}
+        Info.Println("my hostname:", hostname)
+	return hostname
 }
 
-func getLocalIP() net.IP {
-        re := regexp.MustCompile("^(\\w+)\\s+00000000(\\s+\\w+){5}\\s+00000000")
-        var ipv4 net.IP
+func nodeResolveTarget(target string) string {
+	dst_ip, port, _ := net.SplitHostPort(target)
+	re := regexp.MustCompile("\\d+(\\.\\d+)")
+	if ! re.MatchString(dst_ip) {
+		ip, err := net.LookupHost(dst_ip)
+		if err != nil {
+			Error.Println("can't resolve name:", dst_ip)
+		}
+		dst_ip = ip[0]
+	}
 
-        file, _ := os.Open("/proc/net/route")
-        defer file.Close()
-
-        scanner := bufio.NewScanner(file)
-        for scanner.Scan() {
-                match := re.FindStringSubmatch(scanner.Text())
-                if match != nil {
-                        iface, _ := net.InterfaceByName(match[1])
-                        addrs, _ := iface.Addrs()
-                        Trace.Println("localIP addresses:", addrs)
-                        ipv4, _, _ = net.ParseCIDR(fmt.Sprint(addrs[0]))
-                }
-        }
-	Trace.Println("local IPv4:", ipv4)
-        return ipv4
+//	Trace.Println("target IP address:", dst_ip)
+//	ifaces, _ := net.Interfaces()
+//	Trace.Println("ifaces:", ifaces)
+//	r, err := routing.New()
+//	if err != nil {
+//		Error.Println("can't get routing table:", err)
+//	}
+//	_, _, address, err := r.Route(net.ParseIP(dst_ip))
+//	if err != nil {
+//		Error.Println("can't find route to:", target, "(", dst_ip, ")")
+//	}
+	Trace.Println("destination is:", dst_ip, "and port:", port)
+//	Info.Println("my IP address is:", address)
+        return net.JoinHostPort(dst_ip, port)
 }
 
-func nodeCollectData() {
+func getLocalIP(ifname string) net.IP {
+	var ip []net.Addr
+
+	re := regexp.MustCompile("^\\d+$")
+	if re.MatchString(ifname) {
+		ifindex, err := strconv.Atoi(ifname)
+		if err != nil {
+			Error.Println(err)
+		}
+		iface, err := net.InterfaceByIndex(ifindex)
+		if err != nil {
+			Error.Println("can't find interface with index:", ifindex)
+		}
+		ip, _ = iface.Addrs()
+	} else {
+		iface, err := net.InterfaceByName(ifname)
+		if err != nil {
+			Error.Println("can't find interface name:", ifname)
+		}
+		ip, _ = iface.Addrs()
+	}
+	Trace.Println("local ip addresses:", ip)
+	ipv4, netv4, err := net.ParseCIDR(fmt.Sprint(ip[0]))
+	if err != nil {
+		Error.Println(err)
+	}
+	Trace.Println("local IPv4 network:", netv4)
+	Info.Println("local IPv4 addres:", ipv4)
+	return ipv4
+}
+func nodeCollectData(ifname string) {
 	Inventory.Hostname = getHostname()
-	Inventory.Intip = getLocalIP()
+	Inventory.Intip = getLocalIP(ifname)
 }
 
 func nodeJoin2cluster(host string) {
@@ -141,7 +198,6 @@ func postJoin(host string) PeerInventory {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		//r := PeerData{}
 		Error.Println(err)
 		return r
 	}

@@ -6,8 +6,6 @@ import (
         "github.com/julienschmidt/httprouter"
 	"encoding/json"
 	"bytes"
-	//"io/ioutil"
-	//"fmt"
 )
 
 func handlListNodes(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

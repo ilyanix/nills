@@ -128,7 +128,7 @@ func sswanLoadConn() {
 
 		c := vici.NewMessage()
 		c.Set(c_name, m_ike)
-		check := c.CheckError()
+		check := c.Err()
 		if check != nil {
 			Error.Println(check)
 		}
