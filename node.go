@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"bytes"
 	"strconv"
-//	"github.com/google/gopacket/routing"
 )
 
 type Node struct {
@@ -136,6 +135,18 @@ func nodeJoin2cluster(host string) {
 		}
 		rejoin = false
 	}
+}
+
+func getNodeWipe(host string, node string) {
+
+	url := "http://" + host + "/v1/nodewipe/" + node
+	Info.Println("Trying to connect to:", url)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		Error.Println(err)
+	}
+	Trace.Println("getwipe resp:", resp)
 }
 
 func getNodes(host string) PeerInventory {

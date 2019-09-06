@@ -102,6 +102,23 @@ func sswanLoadKey() {
 	Info.Println("load key success:", r.Get("success"))
 }
 
+func sswanUnloadConn(hostname string) {
+	session, err := vici.NewSession()
+        if err != nil {
+                Error.Println("can't connect to strongswan daemon:", err)
+                return
+        }
+	m := vici.NewMessage()
+	conn := "to_" + hostname
+	m.Set("name", conn)
+	Info.Println("unload conn:", conn)
+	r, err := session.CommandRequest("unload-conn", m)
+	if err != nil {
+		Error.Println("unload error:", err)
+	}
+	Info.Println("unload conn result:", r)
+}
+
 func sswanLoadConn() {
 	session, err := vici.NewSession()
         if err != nil {

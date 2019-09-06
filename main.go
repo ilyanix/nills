@@ -28,7 +28,7 @@ func main() {
 	joinTarget := flag.String("join","0.0.0.0:0", "join to: IP:PORT")
 	tcpPort := flag.String("port", "9080", "pecify binding port")
 	debug := flag.Bool("debug", false, "turn on debug logs")
-	srcIfname := flag.String("nic", "2", "source interface name or index")
+	srcIfname := flag.String("nic", "eth0", "source interface name or index")
 
 	flag.Parse()
 

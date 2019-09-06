@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
         "net"
         "net/http"
         "github.com/julienschmidt/httprouter"
@@ -77,4 +78,66 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	sswanLoadConn()
 }
 
+func handlNodeShow(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
+	var res Node
+
+	hostname := p.ByName("hostname")
+	remoteIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+
+	Info.Println("request info about node", hostname, "from", remoteIP)
+	if hostname == Inventory.Hostname {
+		res.Hostname = Inventory.Hostname
+		res.Intip = Inventory.Intip
+		res.Extip = Inventory.Extip
+		res.Port = Inventory.Port
+	}
+	for i, _ := range Inventory.Nodes {
+		n := Inventory.Nodes[i]
+		if n.Hostname == hostname {
+			res.Hostname = n.Hostname
+			res.Intip = n.Intip
+			res.Extip = n.Extip
+			res.Port = n.Port
+		}
+	}
+	err := json.NewEncoder(w).Encode(res)
+	if err != nil {
+		w.WriteHeader(500)
+		Trace.Println(err)
+		return
+	}
+}
+
+func handlNodeWipe(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+
+	hostname := p.ByName("hostname")
+	rIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+	remoteIP := net.ParseIP(rIP)
+	Trace.Println("wipe node:", hostname)
+	if hostname == Inventory.Hostname {
+		for _, v := range Inventory.Nodes {
+			sswanTerminateConn(v.Hostname)
+			sswanUnloadConn(v.Hostname)
+			host := net.JoinHostPort(fmt.Sprint(v.Extip), v.Port)
+			if !bytes.Equal(v.Extip, remoteIP) {
+				getNodeWipe(host, hostname)
+			}
+		}
+		Inventory.Nodes = nil
+		return
+	} else {
+		for i, v := range Inventory.Nodes {
+			if hostname == v.Hostname {
+				sswanTerminateConn(v.Hostname)
+				sswanUnloadConn(v.Hostname)
+				Inventory.Nodes = append(Inventory.Nodes[:i], Inventory.Nodes[i+1:]...)
+				if !bytes.Equal(v.Extip, remoteIP) {
+					host := net.JoinHostPort(fmt.Sprint(v.Extip), v.Port)
+					getNodeWipe(host, hostname)
+				}
+			}
+		}
+
+	}
+}
