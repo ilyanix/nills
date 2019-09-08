@@ -143,7 +143,7 @@ func sswanLoadConn(hostname string) {
 			if e != nil {
 				Error.Println(e)
 			}
-			Info.Println("connection", cName, "loaded:", m.Get("success"))
+			Info.Println("connection", cName, "loaded:", m)
 		}
 	}
 }

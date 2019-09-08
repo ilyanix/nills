@@ -90,6 +90,7 @@ func getLocalIP(ifname string) string {
 	Info.Println("local IPv4 addres:", ipv4)
 	return fmt.Sprint(ipv4)
 }
+
 func nodeCollectData(ifname string) {
 	Inventory.Hostname = getHostname()
 	Inventory.Intip = append(Inventory.Intip, getLocalIP(ifname))
