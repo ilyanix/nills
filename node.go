@@ -14,20 +14,20 @@ import (
 
 //Node data about node
 type Node struct {
-	Hostname string `json:"hostname"`
-	Extip    net.IP `json:"extip"`
-	Intip    net.IP `json:"intip"`
-	Port     string `json:"port"`
+	Hostname string   `json:"hostname"`
+	Extip    []string `json:"extip"`
+	Intip    []string `json:"intip"`
+	Port     string   `json:"port"`
 }
 
 //PeerInventory all nodes data
 type PeerInventory struct {
-	Hostname string `json:"hostname"`
-	Intip    net.IP `json:"intip"`
-	Extip    net.IP `json:"extip"`
-	Port     string `json:"port"`
-	Remoteip net.IP `json:"remoteip"`
-	Nodes    []Node `json:"nodes"`
+	Hostname string   `json:"hostname"`
+	Intip    []string `json:"intip"`
+	Extip    []string `json:"extip"`
+	Port     string   `json:"port"`
+	Remoteip string   `json:"remoteip"`
+	Nodes    []Node   `json:"nodes"`
 }
 
 func getHostname() string {
@@ -60,7 +60,7 @@ func nodeResolveTarget(target string) string {
 	return net.JoinHostPort(dstip, port)
 }
 
-func getLocalIP(ifname string) net.IP {
+func getLocalIP(ifname string) string {
 	var ip []net.Addr
 
 	re := regexp.MustCompile("^\\d+$")
@@ -88,11 +88,12 @@ func getLocalIP(ifname string) net.IP {
 	}
 	Trace.Println("local IPv4 network:", netv4)
 	Info.Println("local IPv4 addres:", ipv4)
-	return ipv4
+	return fmt.Sprint(ipv4)
 }
 func nodeCollectData(ifname string) {
 	Inventory.Hostname = getHostname()
-	Inventory.Intip = getLocalIP(ifname)
+	Inventory.Intip = append(Inventory.Intip, getLocalIP(ifname))
+	Inventory.Extip = []string{"0.0.0.0"}
 }
 
 func nodeJoin2cluster(host string) {
@@ -117,19 +118,19 @@ func nodeJoin2cluster(host string) {
 	node.Extip = rInventory.Extip
 	node.Intip = rInventory.Intip
 
-	Inventory.Extip = rInventory.Remoteip
+	Inventory.Extip = append(Inventory.Extip, rInventory.Remoteip)
 	Trace.Println("add node:", node.Hostname)
 	Inventory.Nodes = append(Inventory.Nodes, node)
 
 	for _, v := range Inventory.Nodes {
+		Trace.Println("load connection to:", v.Hostname)
+		sswanLoadConn(v.Hostname)
 		Trace.Println("join to node:", v.Hostname)
-		ip := fmt.Sprint(v.Extip)
+		ip := v.Extip[0]
 		host := net.JoinHostPort(ip, v.Port)
 		postJoin(host)
 	}
 
-	Trace.Println("load connection", Inventory.Nodes)
-	sswanLoadConn()
 	if rejoin {
 		Info.Println("rejoin to all nodes:")
 		for _, n := range Inventory.Nodes {

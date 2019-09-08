@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	vici "github.com/strongswan/govici"
 )
 
@@ -111,43 +109,41 @@ func sswanUnloadConn(hostname string) {
 	Info.Println("unload conn result:", r)
 }
 
-func sswanLoadConn() {
-	myIntip := fmt.Sprint(Inventory.Intip)
-	myExtip := fmt.Sprint(Inventory.Extip)
+func sswanLoadConn(hostname string) {
 	for _, n := range Inventory.Nodes {
-		nodeIntip := fmt.Sprint(n.Intip)
-		nodeExtip := fmt.Sprint(n.Extip)
-		local := ikeLocal{myExtip, "psk"}
-		remote := ikeRemote{nodeExtip, "psk"}
+		if hostname == n.Hostname {
+			local := ikeLocal{Inventory.Extip[0], "psk"}
+			remote := ikeRemote{n.Extip[0], "psk"}
 
-		lts := []string{myIntip}
-		rts := []string{nodeIntip}
-		ep := []string{"aes256-sha2_256"}
-		child := ikeChildren{lts, rts, ep, "clear", "start", "1h"}
-		mChild, err := vici.MarshalMessage(child)
-		if err != nil {
-			Error.Println(err)
-		}
-		cName := "to_" + n.Hostname
-		childName := vici.NewMessage()
-		childName.Set(cName, mChild)
+			lts := Inventory.Intip
+			rts := n.Intip
+			ep := []string{"aes256-sha2_256"}
+			child := ikeChildren{lts, rts, ep, "clear", "none", "1h"}
+			mChild, err := vici.MarshalMessage(child)
+			if err != nil {
+				Error.Println(err)
+			}
+			cName := "to_" + n.Hostname
+			childName := vici.NewMessage()
+			childName.Set(cName, mChild)
 
-		la := []string{myIntip}
-		ra := []string{nodeExtip}
-		ps := []string{"aes256-sha2_256-modp1024", "default"}
-		ike := ike{la, ra, ps, local, remote, "replace", "600", childName}
-		mIke, e := vici.MarshalMessage(ike)
+			la := Inventory.Intip
+			ra := n.Extip
+			ps := []string{"aes256-sha2_256-modp1024", "default"}
+			ike := ike{la, ra, ps, local, remote, "replace", "600", childName}
+			mIke, e := vici.MarshalMessage(ike)
 
-		c := vici.NewMessage()
-		c.Set(cName, mIke)
-		check := c.Err()
-		if check != nil {
-			Error.Println(check)
+			c := vici.NewMessage()
+			c.Set(cName, mIke)
+			check := c.Err()
+			if check != nil {
+				Error.Println(check)
+			}
+			m, e := sswanSock.CommandRequest("load-conn", c)
+			if e != nil {
+				Error.Println(e)
+			}
+			Info.Println("connection", cName, "loaded:", m.Get("success"))
 		}
-		m, e := sswanSock.CommandRequest("load-conn", c)
-		if e != nil {
-			Error.Println(e)
-		}
-		Info.Println("connection", cName, "loaded:", m.Get("success"))
 	}
 }
