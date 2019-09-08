@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	vici "github.com/strongswan/govici"
 )
 
 var (
@@ -22,8 +20,6 @@ var (
 	Error *log.Logger
 	//Inventory data about all peeers
 	Inventory PeerInventory
-	//SSwanSock session to strongswan daemon socket
-	SSwanSock *vici.Session
 )
 
 func loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Writer, errorHandle io.Writer) {
@@ -52,7 +48,7 @@ func main() {
 	target := nodeResolveTarget(*joinTarget)
 	nodeCollectData(*srcIfname)
 
-	SSwanSock = sswanSession()
+	sswanSession()
 
 	sswanLoadKey()
 

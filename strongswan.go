@@ -6,6 +6,10 @@ import (
 	vici "github.com/strongswan/govici"
 )
 
+var (
+	sswanSock *vici.Session
+)
+
 type ikeLocal struct {
 	ID   string `vici:"id"`
 	Auth string `vici:"auth"`
@@ -43,12 +47,12 @@ type ikeKey struct {
 	Owners []string `vici:"owners"`
 }
 
-func sswanSession() *vici.Session {
-	session, err := vici.NewSession()
+func sswanSession() {
+	s, err := vici.NewSession()
 	if err != nil {
 		panic(err)
 	}
-	return session
+	sswanSock = s
 }
 
 func sswanInitConn(hostname string) {
@@ -58,7 +62,7 @@ func sswanInitConn(hostname string) {
 	m.Set("ike", conn)
 	m.Set("timeout", "-1")
 	Info.Println("initiate conn:", conn)
-	r, err := SSwanSock.CommandRequest("initiate", m)
+	r, err := sswanSock.CommandRequest("initiate", m)
 	if err != nil {
 		Error.Println("initiate error:", err)
 	}
@@ -72,7 +76,7 @@ func sswanTerminateConn(hostname string) {
 	m.Set("ike", conn)
 	m.Set("timeout", "-1")
 	Info.Println("terminate conn:", conn)
-	r, err := SSwanSock.CommandRequest("terminate", m)
+	r, err := sswanSock.CommandRequest("terminate", m)
 	if err != nil {
 		Error.Println("terminate error:", err)
 	}
@@ -88,7 +92,7 @@ func sswanLoadKey() {
 	if err != nil {
 		Error.Println("message key:", err)
 	}
-	r, err := SSwanSock.CommandRequest("load-shared", m)
+	r, err := sswanSock.CommandRequest("load-shared", m)
 	if err != nil {
 		Error.Println("lad key:", err)
 	}
@@ -100,7 +104,7 @@ func sswanUnloadConn(hostname string) {
 	conn := "to_" + hostname
 	m.Set("name", conn)
 	Info.Println("unload conn:", conn)
-	r, err := SSwanSock.CommandRequest("unload-conn", m)
+	r, err := sswanSock.CommandRequest("unload-conn", m)
 	if err != nil {
 		Error.Println("unload error:", err)
 	}
@@ -140,7 +144,7 @@ func sswanLoadConn() {
 		if check != nil {
 			Error.Println(check)
 		}
-		m, e := SSwanSock.CommandRequest("load-conn", c)
+		m, e := sswanSock.CommandRequest("load-conn", c)
 		if e != nil {
 			Error.Println(e)
 		}
