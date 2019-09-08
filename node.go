@@ -1,61 +1,63 @@
 package main
 
 import (
-	"regexp"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
-	"fmt"
-	"io/ioutil"
-	"encoding/json"
-	"bytes"
+	"regexp"
 	"strconv"
 )
 
+//Node data about node
 type Node struct {
-	Hostname	string	`json:"hostname"`
-	Extip		net.IP	`json:"extip"`
-	Intip		net.IP	`json:"intip"`
-	Port		string	`json:"port"`
+	Hostname string `json:"hostname"`
+	Extip    net.IP `json:"extip"`
+	Intip    net.IP `json:"intip"`
+	Port     string `json:"port"`
 }
 
+//PeerInventory all nodes data
 type PeerInventory struct {
-	Hostname	string	`json:"hostname"`
-	Intip		net.IP	`json:"intip"`
-	Extip		net.IP	`json:"extip"`
-	Port		string	`json:"port"`
-	Remoteip	net.IP	`json:"remoteip"`
-	Nodes		[]Node	`json:"nodes"`
+	Hostname string `json:"hostname"`
+	Intip    net.IP `json:"intip"`
+	Extip    net.IP `json:"extip"`
+	Port     string `json:"port"`
+	Remoteip net.IP `json:"remoteip"`
+	Nodes    []Node `json:"nodes"`
 }
 
 func getHostname() string {
-        re := regexp.MustCompile("\\.")
-        hostname, err := os.Hostname()
+	re := regexp.MustCompile("\\.")
+	hostname, err := os.Hostname()
 	if err != nil {
-                panic(err)
-        }
+		panic(err)
+	}
 	Trace.Println("os hostname is:", hostname)
-        match := re.Split(hostname, -1)
+	match := re.Split(hostname, -1)
 	if len(match) > 1 {
 		hostname = match[0]
 	}
-        Info.Println("my hostname:", hostname)
+	Info.Println("my hostname:", hostname)
 	return hostname
 }
 
 func nodeResolveTarget(target string) string {
-	dst_ip, port, _ := net.SplitHostPort(target)
+	dstip, port, _ := net.SplitHostPort(target)
 	re := regexp.MustCompile("\\d+(\\.\\d+)")
-	if ! re.MatchString(dst_ip) {
-		ip, err := net.LookupHost(dst_ip)
+	if !re.MatchString(dstip) {
+		ip, err := net.LookupHost(dstip)
 		if err != nil {
-			Error.Println("can't resolve name:", dst_ip)
+			Error.Println("can't resolve name:", dstip)
 		}
-		dst_ip = ip[0]
+		dstip = ip[0]
 	}
 
-	Trace.Println("destination is:", dst_ip, "and port:", port)
-        return net.JoinHostPort(dst_ip, port)
+	Trace.Println("destination is:", dstip, "and port:", port)
+	return net.JoinHostPort(dstip, port)
 }
 
 func getLocalIP(ifname string) net.IP {
@@ -175,7 +177,6 @@ func getNodes(host string) PeerInventory {
 	return r
 }
 
-
 func postJoin(host string) PeerInventory {
 	var r PeerInventory
 
@@ -208,5 +209,3 @@ func postJoin(host string) PeerInventory {
 	}
 	return r
 }
-
-

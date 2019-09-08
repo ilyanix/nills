@@ -1,12 +1,13 @@
 package main
 
 import (
-	"fmt"
-        "net"
-        "net/http"
-        "github.com/julienschmidt/httprouter"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func handlListNodes(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -27,8 +28,8 @@ func handlListNodes(w http.ResponseWriter, r *http.Request, p httprouter.Params)
 
 func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	Trace.Println("Join Start")
-	var rInventory	PeerInventory
-	var node	Node
+	var rInventory PeerInventory
+	var node Node
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	remoteIP, _, _ := net.SplitHostPort(r.RemoteAddr)
@@ -45,11 +46,11 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	Trace.Println("Join data from node:", rInventory)
 	node = Node{
 		Hostname: rInventory.Hostname,
-		Intip: rInventory.Intip,
-		Extip: net.ParseIP(remoteIP),
-		Port: rInventory.Port }
+		Intip:    rInventory.Intip,
+		Extip:    net.ParseIP(remoteIP),
+		Port:     rInventory.Port}
 
-	for i, _ := range Inventory.Nodes {
+	for i := range Inventory.Nodes {
 		n := &Inventory.Nodes[i]
 		if bytes.Equal(n.Extip, node.Extip) && n.Port == node.Port {
 			Info.Println("the node:", node.Hostname, node.Extip, node.Port, "is already known")
@@ -92,7 +93,7 @@ func handlNodeShow(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		res.Extip = Inventory.Extip
 		res.Port = Inventory.Port
 	}
-	for i, _ := range Inventory.Nodes {
+	for i := range Inventory.Nodes {
 		n := Inventory.Nodes[i]
 		if n.Hostname == hostname {
 			res.Hostname = n.Hostname
@@ -125,7 +126,6 @@ func handlNodeWipe(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 			}
 		}
 		Inventory.Nodes = nil
-		return
 	} else {
 		for i, v := range Inventory.Nodes {
 			if hostname == v.Hostname {
