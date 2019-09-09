@@ -49,12 +49,12 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Port:     rInventory.Port}
 
 	for i := range Inventory.Nodes {
-		n := &Inventory.Nodes[i]
+		n := Inventory.Nodes[i]
 		if n.Extip[0] == node.Extip[0] && n.Port == node.Port {
-			Info.Println("the node:", node.Hostname, node.Extip[0], node.Port, "is already known")
-			Info.Println("update data for node with external IP:", node.Extip[0])
-			n.Hostname = node.Hostname
-			n.Intip = node.Intip
+			Info.Println("the node with IP:", node.Extip[0], "and port:", node.Port, "is already known")
+			Info.Println("update inventory for node with external IP:", node.Extip[0])
+			delete(Inventory.Nodes, i)
+			Inventory.Nodes[node.Hostname] = node
 			sswanLoadConn(node.Hostname)
 			sswanTerminateConn(node.Hostname)
 			sswanInitConn(node.Hostname)
@@ -67,7 +67,7 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			return
 		}
 	}
-	Inventory.Nodes = append(Inventory.Nodes, node)
+	Inventory.Nodes[node.Hostname] = node
 	Trace.Println("nodes:", Inventory.Nodes)
 	err = json.NewEncoder(w).Encode(Inventory)
 	if err != nil {
@@ -93,14 +93,9 @@ func handlNodeShow(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 		res.Extip = Inventory.Extip
 		res.Port = Inventory.Port
 	}
-	for i := range Inventory.Nodes {
-		n := Inventory.Nodes[i]
-		if n.Hostname == hostname {
-			res.Hostname = n.Hostname
-			res.Intip = n.Intip
-			res.Extip = n.Extip
-			res.Port = n.Port
-		}
+	node, exist := Inventory.Nodes[hostname]
+	if exist {
+		res = node
 	}
 	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
@@ -117,27 +112,26 @@ func handlNodeWipe(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	Trace.Println("wipe node:", hostname)
 
 	if hostname == Inventory.Hostname {
-		for _, v := range Inventory.Nodes {
-			sswanTerminateConn(v.Hostname)
-			sswanUnloadConn(v.Hostname)
-			if v.Extip[0] != remoteIP {
-				host := net.JoinHostPort(v.Extip[0], v.Port)
+		for i := range Inventory.Nodes {
+			node := Inventory.Nodes[i]
+			sswanTerminateConn(node.Hostname)
+			sswanUnloadConn(node.Hostname)
+			if node.Extip[0] != remoteIP {
+				host := net.JoinHostPort(node.Extip[0], node.Port)
 				getNodeWipe(host, hostname)
 			}
 		}
-		Inventory.Nodes = nil
+		Inventory.Nodes = make(map[string]Node)
 	} else {
-		for i, v := range Inventory.Nodes {
-			if hostname == v.Hostname {
-				sswanTerminateConn(v.Hostname)
-				sswanUnloadConn(v.Hostname)
-				Inventory.Nodes = append(Inventory.Nodes[:i], Inventory.Nodes[i+1:]...)
-				if v.Extip[0] != remoteIP {
-					host := net.JoinHostPort(v.Extip[0], v.Port)
-					getNodeWipe(host, hostname)
-				}
+		node, exist := Inventory.Nodes[hostname]
+		if exist {
+			sswanTerminateConn(hostname)
+			sswanUnloadConn(hostname)
+			delete(Inventory.Nodes, hostname)
+			if node.Extip[0] != remoteIP {
+				host := net.JoinHostPort(node.Extip[0], node.Port)
+				getNodeWipe(host, hostname)
 			}
 		}
-
 	}
 }

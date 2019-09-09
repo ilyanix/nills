@@ -22,12 +22,12 @@ type Node struct {
 
 //PeerInventory all nodes data
 type PeerInventory struct {
-	Hostname string   `json:"hostname"`
-	Intip    []string `json:"intip"`
-	Extip    []string `json:"extip"`
-	Port     string   `json:"port"`
-	Remoteip string   `json:"remoteip"`
-	Nodes    []Node   `json:"nodes"`
+	Hostname string          `json:"hostname"`
+	Intip    []string        `json:"intip"`
+	Extip    []string        `json:"extip"`
+	Port     string          `json:"port"`
+	Remoteip string          `json:"remoteip"`
+	Nodes    map[string]Node `json:"nodes"`
 }
 
 func getHostname() string {
@@ -95,6 +95,7 @@ func nodeCollectData(ifname string) {
 	Inventory.Hostname = getHostname()
 	Inventory.Intip = append(Inventory.Intip, getLocalIP(ifname))
 	Inventory.Extip = []string{"0.0.0.0"}
+	Inventory.Nodes = make(map[string]Node)
 }
 
 func nodeJoin2cluster(host string) {
@@ -103,12 +104,13 @@ func nodeJoin2cluster(host string) {
 
 	rInventory := getNodes(host)
 	Trace.Println("cluster state:", rInventory)
-	for _, v := range rInventory.Nodes {
+	for i := range rInventory.Nodes {
+		n := rInventory.Nodes[i]
 		switch {
-		case v.Hostname != Inventory.Hostname:
-			Trace.Println("add node:", v.Hostname)
-			Inventory.Nodes = append(Inventory.Nodes, v)
-		case v.Hostname == Inventory.Hostname:
+		case n.Hostname != Inventory.Hostname:
+			Trace.Println("add node:", n.Hostname)
+			Inventory.Nodes[i] = n
+		case n.Hostname == Inventory.Hostname:
 			Info.Println("rejoin to cluster")
 			rejoin = true
 		}
@@ -119,23 +121,24 @@ func nodeJoin2cluster(host string) {
 	node.Extip = rInventory.Extip
 	node.Intip = rInventory.Intip
 
-	Inventory.Extip = append(Inventory.Extip, rInventory.Remoteip)
+	Inventory.Extip[0] = rInventory.Remoteip
 	Trace.Println("add node:", node.Hostname)
-	Inventory.Nodes = append(Inventory.Nodes, node)
+	Inventory.Nodes[node.Hostname] = node
 
-	for _, v := range Inventory.Nodes {
-		Trace.Println("load connection to:", v.Hostname)
-		sswanLoadConn(v.Hostname)
-		Trace.Println("join to node:", v.Hostname)
-		ip := v.Extip[0]
-		host := net.JoinHostPort(ip, v.Port)
+	for i := range Inventory.Nodes {
+		n := Inventory.Nodes[i]
+		Trace.Println("load connection to:", n.Hostname)
+		sswanLoadConn(n.Hostname)
+		Trace.Println("join to node:", n.Hostname)
+		ip := n.Extip[0]
+		host := net.JoinHostPort(ip, n.Port)
 		postJoin(host)
 	}
 
 	if rejoin {
 		Info.Println("rejoin to all nodes:")
-		for _, n := range Inventory.Nodes {
-			sswanInitConn(n.Hostname)
+		for i := range Inventory.Nodes {
+			sswanInitConn(i)
 		}
 		rejoin = false
 	}
