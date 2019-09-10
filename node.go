@@ -100,7 +100,6 @@ func nodeCollectData(ifname string) {
 
 func nodeJoin2cluster(host string) {
 	var node Node
-	var rejoin bool
 
 	rInventory := getNodes(host)
 	Trace.Println("cluster state:", rInventory)
@@ -112,7 +111,6 @@ func nodeJoin2cluster(host string) {
 			Inventory.Nodes[i] = n
 		case n.Hostname == Inventory.Hostname:
 			Info.Println("rejoin to cluster")
-			rejoin = true
 		}
 	}
 
@@ -129,18 +127,11 @@ func nodeJoin2cluster(host string) {
 		n := Inventory.Nodes[i]
 		Trace.Println("load connection to:", n.Hostname)
 		sswanLoadConn(n.Hostname)
+		go sswanInitConn(n.Hostname)
 		Trace.Println("join to node:", n.Hostname)
 		ip := n.Extip[0]
 		host := net.JoinHostPort(ip, n.Port)
 		postJoin(host)
-	}
-
-	if rejoin {
-		Info.Println("rejoin to all nodes:")
-		for i := range Inventory.Nodes {
-			sswanInitConn(i)
-		}
-		rejoin = false
 	}
 }
 

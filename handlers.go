@@ -41,6 +41,7 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Trace.Println(err)
 		return
 	}
+
 	Trace.Println("Join data from node:", rInventory)
 	node = Node{
 		Hostname: rInventory.Hostname,
@@ -54,20 +55,24 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			Info.Println("the node with IP:", node.Extip[0], "and port:", node.Port, "is already known")
 			Info.Println("update inventory for node with external IP:", node.Extip[0])
 			delete(Inventory.Nodes, i)
+			delete(Inventory.Nodes, node.Hostname)
 			Inventory.Nodes[node.Hostname] = node
-			sswanLoadConn(node.Hostname)
 			sswanTerminateConn(node.Hostname)
-			sswanInitConn(node.Hostname)
+			sswanTerminateConn(i)
 			err = json.NewEncoder(w).Encode(Inventory)
 			if err != nil {
 				w.WriteHeader(500)
 				Trace.Println(err)
 				return
 			}
-			return
 		}
 	}
-	Inventory.Nodes[node.Hostname] = node
+
+	_, exist := Inventory.Nodes[node.Hostname]
+	if !exist {
+		Inventory.Nodes[node.Hostname] = node
+	}
+
 	Trace.Println("nodes:", Inventory.Nodes)
 	err = json.NewEncoder(w).Encode(Inventory)
 	if err != nil {
@@ -77,6 +82,7 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	sswanLoadConn(node.Hostname)
 	sswanInitConn(node.Hostname)
+	w.WriteHeader(200)
 }
 
 func handlNodeShow(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

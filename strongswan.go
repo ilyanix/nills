@@ -55,31 +55,31 @@ func sswanSession() {
 
 func sswanInitConn(hostname string) {
 	m := vici.NewMessage()
-	conn := "to_" + hostname
-	m.Set("child", conn)
-	m.Set("ike", conn)
-	m.Set("timeout", "-1")
-	Info.Println("initiate conn:", conn)
+	m.Set("child", "childTo_"+hostname)
+	m.Set("ike", "to_"+hostname)
+	//m.Set("timeout", "1000")
+	//m.Set("init-limits", 1)
+	Info.Println("initiate conn to host:", hostname)
 	r, err := sswanSock.CommandRequest("initiate", m)
 	if err != nil {
 		Error.Println("initiate error:", err)
 	}
-	Info.Println("initiate conn", conn, "success:", r)
+	Info.Println("initiate conn to host:", hostname, "success:", r)
 }
 
 func sswanTerminateConn(hostname string) {
 	m := vici.NewMessage()
-	conn := "to_" + hostname
-	m.Set("child", conn)
-	m.Set("ike", conn)
-	m.Set("timeout", "-1")
-	Info.Println("terminate conn:", conn)
+	m.Set("child", "childTo_"+hostname)
+	m.Set("ike", "to_"+hostname)
+	m.Set("timeout", "0")
+	Info.Println("terminate conn to host:", hostname)
 	r, err := sswanSock.CommandRequest("terminate", m)
 	if err != nil {
 		Error.Println("terminate error:", err)
 	}
-	Info.Println("terminate conn", conn, "success:", r)
+	Info.Println("terminate conn to host:", hostname, "success:", r)
 }
+
 func sswanLoadKey() {
 	var psk ikeKey
 	psk.ID = "qwe"
@@ -99,9 +99,8 @@ func sswanLoadKey() {
 
 func sswanUnloadConn(hostname string) {
 	m := vici.NewMessage()
-	conn := "to_" + hostname
-	m.Set("name", conn)
-	Info.Println("unload conn:", conn)
+	m.Set("name", "to_"+hostname)
+	Info.Println("unload conn to hostname:", hostname)
 	r, err := sswanSock.CommandRequest("unload-conn", m)
 	if err != nil {
 		Error.Println("unload error:", err)
@@ -124,23 +123,23 @@ func sswanLoadConn(hostname string) {
 		Error.Println(err)
 	}
 
-	cName := "to_" + n.Hostname
-
 	childName := vici.NewMessage()
-	childName.Set(cName, mChild)
+	childName.Set("childTo_"+n.Hostname, mChild)
+	Trace.Println("sswan child messages:", mChild)
 
 	la := Inventory.Intip
 	ra := n.Extip
 	ps := []string{"aes256-sha2_256-modp1024", "default"}
 
-	ike := ike{la, ra, ps, local, remote, "replace", "600", childName}
+	ike := ike{la, ra, ps, local, remote, "no", "0", childName}
 	mIke, e := vici.MarshalMessage(ike)
 	if err != nil {
 		Error.Println(err)
 	}
+	Trace.Println("sswan ike messages:", ike)
 
 	c := vici.NewMessage()
-	c.Set(cName, mIke)
+	c.Set("to_"+hostname, mIke)
 
 	check := c.Err()
 	if check != nil {
@@ -152,5 +151,5 @@ func sswanLoadConn(hostname string) {
 		Error.Println(e)
 	}
 
-	Info.Println("connection", cName, "loaded:", m)
+	Info.Println("connection to host:", hostname, "loaded:", m)
 }
