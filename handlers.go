@@ -81,7 +81,6 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		return
 	}
 	sswanLoadConn(node.Hostname)
-	sswanInitConn(node.Hostname)
 	w.WriteHeader(200)
 }
 

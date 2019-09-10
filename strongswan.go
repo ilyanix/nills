@@ -82,7 +82,7 @@ func sswanTerminateConn(hostname string) {
 
 func sswanLoadKey() {
 	var psk ikeKey
-	psk.ID = "qwe"
+	psk.ID = "default-key"
 	psk.Type = "ike"
 	psk.Data = "supersecretkey12345678"
 
@@ -117,7 +117,7 @@ func sswanLoadConn(hostname string) {
 	rts := n.Intip
 	ep := []string{"aes256-sha2_256"}
 
-	child := ikeChildren{lts, rts, ep, "clear", "none", "1h"}
+	child := ikeChildren{lts, rts, ep, "trap", "trap", "1h"}
 	mChild, err := vici.MarshalMessage(child)
 	if err != nil {
 		Error.Println(err)

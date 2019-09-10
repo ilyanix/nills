@@ -127,7 +127,6 @@ func nodeJoin2cluster(host string) {
 		n := Inventory.Nodes[i]
 		Trace.Println("load connection to:", n.Hostname)
 		sswanLoadConn(n.Hostname)
-		go sswanInitConn(n.Hostname)
 		Trace.Println("join to node:", n.Hostname)
 		ip := n.Extip[0]
 		host := net.JoinHostPort(ip, n.Port)
