@@ -5,6 +5,8 @@
 *.so
 *.dylib
 nills
+.vscode/*
+__debug_bin
 
 # Test binary, build with `go test -c`
 *.test
