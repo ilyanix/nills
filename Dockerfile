@@ -5,8 +5,8 @@ MAINTAINER Ilia Martynov <ilyanix@gmail.com>
 # STEP 1 build executable binary
 FROM golang:alpine as builder
 RUN apk add git
-COPY . $GOPATH/src/github.com/ilyanix/nills
-#RUN go get github.com/ilyanix/nills
+#COPY . $GOPATH/src/github.com/ilyanix/nills
+RUN go get github.com/ilyanix/nills
 WORKDIR $GOPATH/src/github.com/ilyanix/nills
 #get dependancies
 RUN go get -d -v

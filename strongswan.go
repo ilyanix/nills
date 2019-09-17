@@ -24,7 +24,6 @@ type ikeChildren struct {
 	EspProposals []string `vici:"esp_proposals"`
 	Dpdaction    string   `vici:"dpd_action"`
 	Startaction  string   `vici:"start_action"`
-	Lifetime     string   `vici:"life_time"`
 }
 
 type ike struct {
@@ -117,7 +116,7 @@ func sswanLoadConn(hostname string) {
 	rts := n.Intip
 	ep := []string{"aes256-sha2_256"}
 
-	child := ikeChildren{lts, rts, ep, "trap", "trap", "1h"}
+	child := ikeChildren{lts, rts, ep, "trap", "trap"}
 	mChild, err := vici.MarshalMessage(child)
 	if err != nil {
 		Error.Println(err)
