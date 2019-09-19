@@ -82,18 +82,19 @@ func getLocalIP(ifname string) string {
 		ip, _ = iface.Addrs()
 	}
 	Trace.Println("local ip addresses:", ip)
-	ipv4, netv4, err := net.ParseCIDR(fmt.Sprint(ip[0]))
+	/*pv4, netv4, err := net.ParseCIDR(fmt.Sprint(ip[0]))
 	if err != nil {
 		Error.Println(err)
 	}
-	Trace.Println("local IPv4 network:", netv4)
+	Trace.Println("local IPv4 network:", netv4)*/
+	ipv4 := fmt.Sprint(ip[0])
 	Info.Println("local IPv4 addres:", ipv4)
 	return fmt.Sprint(ipv4)
 }
 
 func nodeCollectData(ifname string) {
 	Inventory.Hostname = getHostname()
-	Inventory.Intip = append(Inventory.Intip, getLocalIP(ifname))
+	Inventory.Intip = []string{getLocalIP(ifname)}
 	Inventory.Extip = []string{"0.0.0.0"}
 	Inventory.Nodes = make(map[string]Node)
 }
@@ -125,6 +126,9 @@ func nodeJoin2cluster(host string) {
 
 	for i := range Inventory.Nodes {
 		n := Inventory.Nodes[i]
+		if checkLocalNet(n) {
+			return
+		}
 		Trace.Println("load connection to:", n.Hostname)
 		sswanLoadConn(n.Hostname)
 		Trace.Println("join to node:", n.Hostname)
@@ -132,6 +136,18 @@ func nodeJoin2cluster(host string) {
 		host := net.JoinHostPort(ip, n.Port)
 		postJoin(host)
 	}
+}
+
+func checkLocalNet(n Node) bool {
+	Trace.Println("compare loacal network for:", Inventory.Intip, "and", n.Intip)
+	_, myNet, _ := net.ParseCIDR(Inventory.Intip[0])
+	_, peerNet, _ := net.ParseCIDR(n.Intip[0])
+	Trace.Println("compare loacal network for:", myNet, "and", peerNet)
+	if fmt.Sprint(myNet) == fmt.Sprint(peerNet) {
+		Info.Println("hostname:", n.Hostname, "is in my broadcast network")
+		return true
+	}
+	return false
 }
 
 func getNodeWipe(host string, node string) {

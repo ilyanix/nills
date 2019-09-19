@@ -1,5 +1,5 @@
 FROM scratch
-MAINTAINER Ilia Martynov <ilyanix@gmail.com>
+# MAINTAINER Ilia Martynov <ilyanix@gmail.com>
 ## 
 ## 
 # STEP 1 build executable binary
@@ -7,9 +7,9 @@ FROM golang:alpine as builder
 RUN apk add git
 
 ## get code
-#COPY . $GOPATH/src/github.com/ilyanix/nills
+COPY . $GOPATH/src/github.com/ilyanix/nills
 #RUN go get github.com/ilyanix/nills
-RUN git clone https://github.com/ilyanix/nills.git $GOPATH/src/github.com/ilyanix/nills
+#RUN git clone https://github.com/ilyanix/nills.git $GOPATH/src/github.com/ilyanix/nills
 WORKDIR $GOPATH/src/github.com/ilyanix/nills
 
 ## get dependancies
