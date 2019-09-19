@@ -80,7 +80,9 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Trace.Println(err)
 		return
 	}
-	sswanLoadConn(node.Hostname)
+	if !nodeCheckLocalNet(node) {
+		sswanLoadConn(node.Hostname)
+	}
 	w.WriteHeader(200)
 }
 

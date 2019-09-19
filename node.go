@@ -126,11 +126,10 @@ func nodeJoin2cluster(host string) {
 
 	for i := range Inventory.Nodes {
 		n := Inventory.Nodes[i]
-		if checkLocalNet(n) {
-			return
+		if !nodeCheckLocalNet(n) {
+			Trace.Println("load connection to:", n.Hostname)
+			sswanLoadConn(n.Hostname)
 		}
-		Trace.Println("load connection to:", n.Hostname)
-		sswanLoadConn(n.Hostname)
 		Trace.Println("join to node:", n.Hostname)
 		ip := n.Extip[0]
 		host := net.JoinHostPort(ip, n.Port)
@@ -138,7 +137,7 @@ func nodeJoin2cluster(host string) {
 	}
 }
 
-func checkLocalNet(n Node) bool {
+func nodeCheckLocalNet(n Node) bool {
 	Trace.Println("compare loacal network for:", Inventory.Intip, "and", n.Intip)
 	_, myNet, _ := net.ParseCIDR(Inventory.Intip[0])
 	_, peerNet, _ := net.ParseCIDR(n.Intip[0])
