@@ -47,7 +47,8 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Hostname: rInventory.Hostname,
 		Intip:    rInventory.Intip,
 		Extip:    []string{remoteIP},
-		Port:     rInventory.Port}
+		Port:     rInventory.Port,
+		LocalNet: rInventory.LocalNet}
 
 	for i := range Inventory.Nodes {
 		n := Inventory.Nodes[i]
@@ -73,6 +74,10 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Inventory.Nodes[node.Hostname] = node
 	}
 
+	if !nodeCheckLocalNet(node) || lanEnc {
+		sswanLoadConn(node.Hostname)
+	}
+
 	Trace.Println("nodes:", Inventory.Nodes)
 	err = json.NewEncoder(w).Encode(Inventory)
 	if err != nil {
@@ -80,10 +85,6 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		Trace.Println(err)
 		return
 	}
-	if !nodeCheckLocalNet(node) {
-		sswanLoadConn(node.Hostname)
-	}
-	w.WriteHeader(200)
 }
 
 func handlNodeShow(w http.ResponseWriter, r *http.Request, p httprouter.Params) {

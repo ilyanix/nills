@@ -20,6 +20,8 @@ var (
 	Error *log.Logger
 	//Inventory data about all peeers
 	Inventory PeerInventory
+	//LanEnc Enc traffic between nodes in same subnet
+	lanEnc bool
 )
 
 func loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Writer, errorHandle io.Writer) {
@@ -30,10 +32,11 @@ func loginit(traceHandle io.Writer, infoHandle io.Writer, warningHandle io.Write
 }
 
 func main() {
-	joinTarget := flag.String("join", "0.0.0.0:0", "join to: IP:PORT")
+	target := flag.String("join", "0.0.0.0:0", "join to: IP:PORT")
 	tcpPort := flag.String("port", "9080", "pecify binding port")
 	debug := flag.Bool("debug", false, "turn on debug logs")
 	srcIfname := flag.String("nic", "eth0", "source interface name or index")
+	localEnc := flag.Bool("local", false, "encript traffic between peers in same subnet")
 
 	flag.Parse()
 
@@ -43,17 +46,18 @@ func main() {
 		loginit(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr)
 	}
 
+	lanEnc = *localEnc
 	Inventory.Port = *tcpPort
 
-	target := nodeResolveTarget(*joinTarget)
+	peer := nodeResolveTarget(*target)
 	nodeCollectData(*srcIfname)
 
 	sswanSession()
 
 	sswanLoadKey()
 
-	if target != "0.0.0.0:0" {
-		nodeJoin2cluster(target)
+	if peer != "0.0.0.0:0" {
+		nodeJoin2cluster(peer)
 	}
 
 	APIServer := newAPIServer()
