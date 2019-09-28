@@ -60,7 +60,6 @@ func handlJoin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 			Inventory.Nodes[node.Hostname] = node
 			sswanTerminateConn(node.Hostname)
 			sswanTerminateConn(i)
-			err = json.NewEncoder(w).Encode(Inventory)
 			if err != nil {
 				w.WriteHeader(500)
 				Trace.Println(err)
